@@ -79,8 +79,8 @@ renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 renderer.setClearColor(0x000000,0);
 const scene=new THREE.Scene();
 const camera3=new THREE.PerspectiveCamera(52,innerWidth/innerHeight,.1,100);
-camera3.position.set(0,1.55,5.2);
-camera3.lookAt(0,1.05,0);
+camera3.position.set(0,1.6,5.8);
+camera3.lookAt(0,.25,-1.6);
 scene.add(new THREE.HemisphereLight(0xffffff,0x5b4a38,3.1));
 const key=new THREE.DirectionalLight(0xffffff,4);key.position.set(-3,6,4);scene.add(key);
 const turkey3=new THREE.Group();scene.add(turkey3);
@@ -99,18 +99,18 @@ for(let i=0;i<9;i++){const feather=new THREE.Mesh(new THREE.SphereGeometry(.32,1
 const trail=new THREE.Group();scene.add(trail);
 const dotMat=new THREE.MeshBasicMaterial({color:0xffd34e,transparent:true,opacity:.95});
 for(let i=0;i<13;i++){
- const d=new THREE.Mesh(new THREE.CircleGeometry(.075,20),dotMat);
+ const d=new THREE.Mesh(new THREE.CircleGeometry(.11,20),dotMat);
  d.rotation.x=-Math.PI/2;
  const z=3.35-i*.34;
  const scale=1-(i*.035);
  d.scale.setScalar(Math.max(.48,scale));
- d.position.set(0,-1.18,z);
+ d.position.set(0,-.82,z);
  trail.add(d);
 }
-const trailArrow=new THREE.Mesh(new THREE.ConeGeometry(.18,.42,3),dotMat);
-trailArrow.rotation.x=-Math.PI/2;trailArrow.rotation.z=Math.PI;trailArrow.position.set(0,-1.17,-.95);scene.add(trailArrow);
+const trailArrow=new THREE.Mesh(new THREE.ConeGeometry(.24,.55,3),dotMat);
+trailArrow.rotation.x=-Math.PI/2;trailArrow.rotation.z=Math.PI;trailArrow.position.set(0,-.81,-1.75);scene.add(trailArrow);
 const shadow=new THREE.Mesh(new THREE.CircleGeometry(.72,32),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.28}));shadow.rotation.x=-Math.PI/2;shadow.position.y=-.2;turkey3.add(shadow);
-turkey3.position.set(0,-1.05,0);turkey3.rotation.y=Math.PI;
+turkey3.scale.setScalar(.48);turkey3.position.set(0,-.52,-2.65);turkey3.rotation.y=Math.PI;
 let turkeyTargetX=0, trailTargetX=0, turkeyClock=new THREE.Clock();
 let walkPhase=0;
 function resize3(){renderer.setSize(innerWidth,innerHeight,false);camera3.aspect=innerWidth/innerHeight;camera3.updateProjectionMatrix()}
@@ -120,15 +120,15 @@ function animate3(){
  const t=turkeyClock.getElapsedTime();
  // Turkey stays visually several metres ahead and waddles along the route.
  walkPhase=t*7;
- turkey3.position.y=-1.05+Math.sin(walkPhase)*.035;
+ turkey3.position.y=-.52+Math.sin(walkPhase)*.018;
  turkey3.rotation.z=Math.sin(walkPhase)*.025;
- turkey3.position.z=-.15+Math.sin(t*1.35)*.10;
+ turkey3.position.z=-2.65+Math.sin(t*1.35)*.06;
  turkey3.position.x+=(turkeyTargetX-turkey3.position.x)*.055;
  trail.position.x+=(trailTargetX-trail.position.x)*.055;
  trailArrow.position.x+=(trailTargetX-trailArrow.position.x)*.055;
  // Moving dots create the feeling that the trail flows forward as you walk.
  trail.children.forEach((d,i)=>{
-   let z=3.35-(((i*.34+t*.72)%4.25));
+   let z=3.7-(((i*.43+t*.8)%6.1));
    d.position.z=z;
  });
  renderer.render(scene,camera3)
