@@ -20,18 +20,18 @@
     .status{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}.tile{background:white;border-radius:16px;padding:13px;box-shadow:0 4px 16px #0000000b}.tile small{color:var(--muted)}.tile strong{display:block;margin-top:4px}
     #map{height:390px;border-radius:20px;overflow:hidden;box-shadow:0 8px 24px #0001}
     .actions{display:flex;gap:10px;margin-top:12px}.actions button{flex:1}
-    #ar{display:none;position:fixed;inset:0;background:#111;z-index:50;color:#fff;overflow:hidden}
-    #cam{width:100%;height:100%;object-fit:cover}
-    .shade{position:absolute;inset:0;background:linear-gradient(#0008,transparent 30%,transparent 65%,#000a)}
-    .arTop{position:absolute;top:max(18px,env(safe-area-inset-top));left:16px;right:16px;display:flex;justify-content:space-between;align-items:center}
+    #ar{display:none;position:fixed;inset:0;background:#111;z-index:99999;color:#fff;overflow:hidden;isolation:isolate}
+    #cam{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+    .shade{position:absolute;inset:0;z-index:2;pointer-events:none;background:linear-gradient(#0008,transparent 30%,transparent 65%,#000a)}
+    .arTop{position:absolute;z-index:5;top:max(18px,env(safe-area-inset-top));left:16px;right:16px;display:flex;justify-content:space-between;align-items:center}
     .arInfo{background:#0009;backdrop-filter:blur(10px);padding:10px 13px;border-radius:14px}.arInfo small{opacity:.8}.arInfo strong{display:block;font-size:17px}
     .close{background:#fff;color:#222;width:44px;height:44px;border-radius:50%}
-    .turkeyWrap{position:absolute;left:50%;top:53%;transform:translate(-50%,-50%);text-align:center;filter:drop-shadow(0 10px 10px #0007)}
+    .turkeyWrap{position:absolute;z-index:4;left:50%;top:53%;transform:translate(-50%,-50%);text-align:center;filter:drop-shadow(0 10px 10px #0007)}
     .turkey{font-size:104px;display:block;animation:waddle .55s infinite alternate ease-in-out}
     @keyframes waddle{from{transform:rotate(-4deg) translateY(0)}to{transform:rotate(4deg) translateY(-6px)}}
     .bubble{background:white;color:#222;border-radius:18px;padding:10px 14px;font-weight:800;max-width:260px;margin:auto}
     .arrow{font-size:58px;font-weight:900;margin-top:4px}
-    .arBottom{position:absolute;bottom:max(22px,env(safe-area-inset-bottom));left:16px;right:16px;background:#51247ae8;backdrop-filter:blur(10px);border-radius:20px;padding:15px}
+    .arBottom{position:absolute;z-index:5;bottom:max(22px,env(safe-area-inset-bottom));left:16px;right:16px;background:#51247ae8;backdrop-filter:blur(10px);border-radius:20px;padding:15px}
     .arBottom strong{font-size:18px}.arBottom p{margin:5px 0 0;opacity:.85}
     .note{font-size:12px;color:var(--muted);line-height:1.45;margin:12px 3px}
     @media(min-width:700px){#map{height:480px}}
@@ -65,7 +65,7 @@
     <div class="arInfo"><small>Heading to</small><strong id="arDest">Destination</strong></div>
     <button class="close" id="closeAr">✕</button>
   </div>
-  <canvas id="threeCanvas" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none"></canvas>
+  <canvas id="threeCanvas" style="position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none"></canvas>
   <div class="turkeyWrap" style="top:34%;filter:none"><div class="bubble" id="turkeySay">Righto. Follow me.</div><div class="arrow" id="arrow">↑</div></div>
   <div class="arBottom"><strong id="distance">Finding your position…</strong><p id="instruction">Point your phone forward and start walking.</p></div>
 </section>
