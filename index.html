@@ -112,17 +112,22 @@ trailArrow.rotation.x=-Math.PI/2;trailArrow.rotation.z=Math.PI;trailArrow.positi
 const shadow=new THREE.Mesh(new THREE.CircleGeometry(.72,32),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.28}));shadow.rotation.x=-Math.PI/2;shadow.position.y=-.2;turkey3.add(shadow);
 turkey3.scale.setScalar(.48);turkey3.position.set(0,-.52,-2.65);turkey3.rotation.y=0;
 let turkeyTargetX=0, trailTargetX=0, turkeyClock=new THREE.Clock();
+let turkeyTargetZ=-2.65, turkeyWalkAmount=0;
 let walkPhase=0;
 function resize3(){renderer.setSize(innerWidth,innerHeight,false);camera3.aspect=innerWidth/innerHeight;camera3.updateProjectionMatrix()}
 addEventListener("resize",resize3);resize3();
 function animate3(){
  requestAnimationFrame(animate3);
  const t=turkeyClock.getElapsedTime();
- // Turkey stays visually several metres ahead and waddles along the route.
- walkPhase=t*7;
- turkey3.position.y=-.52+Math.sin(walkPhase)*.018;
- turkey3.rotation.z=Math.sin(walkPhase)*.025;
- turkey3.position.z=-2.65+Math.sin(t*1.35)*.06;
+ // GPS-driven guide: waddle only while the user is genuinely moving.
+ const cadence=walking?Math.min(10,5.5+walkSpeed*2.2):1.4;
+ walkPhase+=.016*cadence;
+ const bob=walking?Math.sin(walkPhase)*.026:Math.sin(t*2)*.006;
+ turkey3.position.y=-.52+bob;
+ turkey3.rotation.z=walking?Math.sin(walkPhase)*.035:0;
+ // As the user walks, the guide advances and then eases back to its comfortable lead distance.
+ const stride=walking?Math.sin(walkPhase*.5)*.10:0;
+ turkey3.position.z+=(turkeyTargetZ+stride-turkey3.position.z)*.045;
  turkey3.position.x+=(turkeyTargetX-turkey3.position.x)*.055;
  trail.position.x+=(trailTargetX-trail.position.x)*.055;
  trailArrow.position.x+=(trailTargetX-trailArrow.position.x)*.055;
@@ -149,6 +154,7 @@ const map=L.map("map").setView([-27.4974,153.0124],16);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:20,attribution:"© OpenStreetMap contributors"}).addTo(map);
 places.forEach((p,i)=>L.marker([p.lat,p.lng]).addTo(map).bindPopup(p.name));
 let me=null, meMarker=null, line=null, watchId=null, heading=0;
+let lastGps=null,lastGpsAt=0,walking=false,walkSpeed=0,leadPhase=0,lastGoodAccuracy=999;
 function chosen(){return places[+sel.value]}
 function rad(x){return x*Math.PI/180}
 function deg(x){return x*180/Math.PI}
@@ -173,14 +179,34 @@ function render(){
  trailArrow.rotation.z=Math.PI+THREE.MathUtils.degToRad(Math.max(-28,Math.min(28,-rel*.22)));
  turkey3.rotation.y=(rel>25?.42:rel<-25?-.42:0);
  document.querySelector("#instruction").textContent=d<20?"Destination reached. Turkey mission accomplished.":(Math.abs(rel)<25?"Follow the dotted trail and keep the turkey ahead of you.":words);
- document.querySelector("#turkeySay").textContent=d<20?"Made it. Easy feed.":Math.abs(rel)>=150?"Oi! Other way.":"Righto. Follow me.";
+ document.querySelector("#turkeySay").textContent=d<20?"Made it. Easy feed.":Math.abs(rel)>=150?"Oi! Other way.":walking?"Keep up — this way!":"Righto. Follow me.";
 }
 function locate(){
  if(!navigator.geolocation){alert("Geolocation is not supported on this device.");return}
  if(watchId!==null)return;
  watchId=navigator.geolocation.watchPosition(pos=>{
-   me={lat:pos.coords.latitude,lng:pos.coords.longitude};
-   document.querySelector("#locText").textContent="±"+Math.round(pos.coords.accuracy)+" m";
+   const now=Date.now();
+   const next={lat:pos.coords.latitude,lng:pos.coords.longitude};
+   const acc=pos.coords.accuracy||999;
+   // Prefer iPhone's measured speed when available; otherwise derive speed from smoothed GPS displacement.
+   let sensed=(typeof pos.coords.speed==="number" && pos.coords.speed>=0)?pos.coords.speed:null;
+   if(lastGps && lastGpsAt && sensed===null){
+     const dt=(now-lastGpsAt)/1000;
+     const moved=distance(lastGps,next);
+     if(dt>.4) sensed=moved/dt;
+   }
+   if(sensed!==null && acc<45){
+     walkSpeed=walkSpeed*.72+Math.min(2.4,sensed)*.28;
+     walking=walkSpeed>.38;
+   } else if(acc>=45){ walking=false; walkSpeed*=.8; }
+   // Ignore implausible GPS hops for animation state, but retain the browser fix for navigation.
+   if(!lastGps || distance(lastGps,next)<35){lastGps=next;lastGpsAt=now;}
+   lastGoodAccuracy=acc;
+   me=next;
+   // Keep the turkey 3–5 visual metres ahead. It surges forward slightly while you walk and waits when you stop.
+   leadPhase=Math.max(0,Math.min(1,leadPhase+(walking?.055:-.04)));
+   turkeyTargetZ=-2.65-(leadPhase*.55);
+   document.querySelector("#locText").textContent="±"+Math.round(acc)+" m"+(walking?" • walking":"");
    render();
  },err=>{document.querySelector("#locText").textContent="Location unavailable";alert(err.message)},
  {enableHighAccuracy:true,maximumAge:1000,timeout:15000});
