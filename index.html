@@ -65,11 +65,42 @@
     <div class="arInfo"><small>Heading to</small><strong id="arDest">Destination</strong></div>
     <button class="close" id="closeAr">✕</button>
   </div>
-  <div class="turkeyWrap"><div class="bubble" id="turkeySay">Righto. Follow me.</div><span class="turkey">🦃</span><div class="arrow" id="arrow">↑</div></div>
+  <canvas id="threeCanvas" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none"></canvas>
+  <div class="turkeyWrap" style="top:34%;filter:none"><div class="bubble" id="turkeySay">Righto. Follow me.</div><div class="arrow" id="arrow">↑</div></div>
   <div class="arBottom"><strong id="distance">Finding your position…</strong><p id="instruction">Point your phone forward and start walking.</p></div>
 </section>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.180.0/build/three.module.js"}}</script>
+<script type="module">
+import * as THREE from "three";
+const canvas=document.querySelector("#threeCanvas");
+const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setClearColor(0x000000,0);
+const scene=new THREE.Scene();
+const camera3=new THREE.PerspectiveCamera(52,innerWidth/innerHeight,.1,100);
+camera3.position.set(0,1.55,5.2);
+camera3.lookAt(0,1.05,0);
+scene.add(new THREE.HemisphereLight(0xffffff,0x5b4a38,3.1));
+const key=new THREE.DirectionalLight(0xffffff,4);key.position.set(-3,6,4);scene.add(key);
+const turkey3=new THREE.Group();scene.add(turkey3);
+const mat=(color,rough=.82)=>new THREE.MeshStandardMaterial({color,roughness:rough});
+const body=new THREE.Mesh(new THREE.SphereGeometry(.72,32,24),mat(0x181513));body.scale.set(.78,1,.72);body.position.y=.88;turkey3.add(body);
+const rump=new THREE.Mesh(new THREE.SphereGeometry(.55,24,18),mat(0x24201d));rump.scale.set(1,.75,.8);rump.position.set(0,.73,.35);turkey3.add(rump);
+const neck=new THREE.Mesh(new THREE.CapsuleGeometry(.14,.7,8,16),mat(0xd82e26,.7));neck.position.set(0,1.62,-.23);neck.rotation.x=-.13;turkey3.add(neck);
+const head=new THREE.Mesh(new THREE.SphereGeometry(.25,24,18),mat(0x22252b));head.scale.set(.82,1,.88);head.position.set(0,2.05,-.33);turkey3.add(head);
+const wattle=new THREE.Mesh(new THREE.CapsuleGeometry(.065,.35,6,12),mat(0xf2c21b,.75));wattle.position.set(0,1.83,-.54);wattle.rotation.x=.12;turkey3.add(wattle);
+const beak=new THREE.Mesh(new THREE.ConeGeometry(.09,.28,16),mat(0xd9b23d));beak.rotation.x=-Math.PI/2;beak.position.set(0,2.03,-.61);turkey3.add(beak);
+[-1,1].forEach(s=>{const eye=new THREE.Mesh(new THREE.SphereGeometry(.035,12,8),mat(0x050505));eye.position.set(.17*s,2.11,-.48);turkey3.add(eye);
+ const leg=new THREE.Mesh(new THREE.CylinderGeometry(.035,.045,.72,10),mat(0xa99069));leg.position.set(.22*s,.18,.02);turkey3.add(leg);
+ const foot=new THREE.Mesh(new THREE.BoxGeometry(.28,.04,.12),mat(0xa99069));foot.position.set(.22*s,-.17,-.08);turkey3.add(foot);});
+for(let i=0;i<9;i++){const feather=new THREE.Mesh(new THREE.SphereGeometry(.32,16,12),mat(i%2?0x27221f:0x38312c));const a=(i-4)*.20;feather.scale.set(.55,1.35,.22);feather.position.set(Math.sin(a)*.75,1.02+Math.cos(a)*.14,.58);feather.rotation.z=-a;turkey3.add(feather);}
+const shadow=new THREE.Mesh(new THREE.CircleGeometry(.72,32),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.28}));shadow.rotation.x=-Math.PI/2;shadow.position.y=-.2;turkey3.add(shadow);
+turkey3.position.set(0,-1.05,0);turkey3.rotation.y=Math.PI;
+let turkeyTargetX=0, turkeyClock=new THREE.Clock();
+function resize3(){renderer.setSize(innerWidth,innerHeight,false);camera3.aspect=innerWidth/innerHeight;camera3.updateProjectionMatrix()}
+addEventListener("resize",resize3);resize3();
+function animate3(){requestAnimationFrame(animate3);const t=turkeyClock.getElapsedTime();turkey3.position.y=-1.05+Math.sin(t*7)*.035;turkey3.rotation.z=Math.sin(t*7)*.025;turkey3.position.x+=(turkeyTargetX-turkey3.position.x)*.06;renderer.render(scene,camera3)}animate3();
 const places=[
  {name:"Student Central — Prentice (42)",lat:-27.49750,lng:153.01320},
  {name:"Building 41",lat:-27.49778,lng:153.01260},
@@ -104,6 +135,8 @@ function render(){
  else if(rel<-25&&rel>-150){symbol="←";words="Turn left toward the turkey"}
  else if(Math.abs(rel)>=150){symbol="↓";words="Turn around — wrong way!"}
  document.querySelector("#arrow").textContent=symbol;
+ turkeyTargetX=rel>25?.85:rel<-25?-.85:0;
+ turkey3.rotation.y=Math.PI+(rel>25?-.42:rel<-25?.42:0);
  document.querySelector("#instruction").textContent=d<20?"Destination reached. Turkey mission accomplished.":words;
  document.querySelector("#turkeySay").textContent=d<20?"Made it. Easy feed.":Math.abs(rel)>=150?"Oi! Other way.":"Righto. Follow me.";
 }
@@ -123,6 +156,7 @@ sel.onchange=render;
 async function openAR(){
  locate(); render();
  document.querySelector("#ar").style.display="block";
+ resize3();
  try{
    const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});
    document.querySelector("#cam").srcObject=stream;
