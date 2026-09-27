@@ -110,7 +110,7 @@ for(let i=0;i<13;i++){
 const trailArrow=new THREE.Mesh(new THREE.ConeGeometry(.24,.55,3),dotMat);
 trailArrow.rotation.x=-Math.PI/2;trailArrow.rotation.z=Math.PI;trailArrow.position.set(0,-.81,-1.75);scene.add(trailArrow);
 const shadow=new THREE.Mesh(new THREE.CircleGeometry(.72,32),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.28}));shadow.rotation.x=-Math.PI/2;shadow.position.y=-.2;turkey3.add(shadow);
-turkey3.scale.setScalar(.48);turkey3.position.set(0,-.52,-2.65);turkey3.rotation.y=Math.PI;
+turkey3.scale.setScalar(.48);turkey3.position.set(0,-.52,-2.65);turkey3.rotation.y=0;
 let turkeyTargetX=0, trailTargetX=0, turkeyClock=new THREE.Clock();
 let walkPhase=0;
 function resize3(){renderer.setSize(innerWidth,innerHeight,false);camera3.aspect=innerWidth/innerHeight;camera3.updateProjectionMatrix()}
@@ -171,7 +171,7 @@ function render(){
  trailTargetX=turkeyTargetX*.45;
  trail.rotation.y=THREE.MathUtils.degToRad(Math.max(-18,Math.min(18,-rel*.16)));
  trailArrow.rotation.z=Math.PI+THREE.MathUtils.degToRad(Math.max(-28,Math.min(28,-rel*.22)));
- turkey3.rotation.y=Math.PI+(rel>25?-.42:rel<-25?.42:0);
+ turkey3.rotation.y=(rel>25?.42:rel<-25?-.42:0);
  document.querySelector("#instruction").textContent=d<20?"Destination reached. Turkey mission accomplished.":(Math.abs(rel)<25?"Follow the dotted trail and keep the turkey ahead of you.":words);
  document.querySelector("#turkeySay").textContent=d<20?"Made it. Easy feed.":Math.abs(rel)>=150?"Oi! Other way.":"Righto. Follow me.";
 }
