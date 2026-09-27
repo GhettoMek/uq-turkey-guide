@@ -95,12 +95,44 @@ const beak=new THREE.Mesh(new THREE.ConeGeometry(.09,.28,16),mat(0xd9b23d));beak
  const leg=new THREE.Mesh(new THREE.CylinderGeometry(.035,.045,.72,10),mat(0xa99069));leg.position.set(.22*s,.18,.02);turkey3.add(leg);
  const foot=new THREE.Mesh(new THREE.BoxGeometry(.28,.04,.12),mat(0xa99069));foot.position.set(.22*s,-.17,-.08);turkey3.add(foot);});
 for(let i=0;i<9;i++){const feather=new THREE.Mesh(new THREE.SphereGeometry(.32,16,12),mat(i%2?0x27221f:0x38312c));const a=(i-4)*.20;feather.scale.set(.55,1.35,.22);feather.position.set(Math.sin(a)*.75,1.02+Math.cos(a)*.14,.58);feather.rotation.z=-a;turkey3.add(feather);}
+// Perspective dotted trail: starts near the user's feet and recedes toward the turkey.
+const trail=new THREE.Group();scene.add(trail);
+const dotMat=new THREE.MeshBasicMaterial({color:0xffd34e,transparent:true,opacity:.95});
+for(let i=0;i<13;i++){
+ const d=new THREE.Mesh(new THREE.CircleGeometry(.075,20),dotMat);
+ d.rotation.x=-Math.PI/2;
+ const z=3.35-i*.34;
+ const scale=1-(i*.035);
+ d.scale.setScalar(Math.max(.48,scale));
+ d.position.set(0,-1.18,z);
+ trail.add(d);
+}
+const trailArrow=new THREE.Mesh(new THREE.ConeGeometry(.18,.42,3),dotMat);
+trailArrow.rotation.x=-Math.PI/2;trailArrow.rotation.z=Math.PI;trailArrow.position.set(0,-1.17,-.95);scene.add(trailArrow);
 const shadow=new THREE.Mesh(new THREE.CircleGeometry(.72,32),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.28}));shadow.rotation.x=-Math.PI/2;shadow.position.y=-.2;turkey3.add(shadow);
 turkey3.position.set(0,-1.05,0);turkey3.rotation.y=Math.PI;
-let turkeyTargetX=0, turkeyClock=new THREE.Clock();
+let turkeyTargetX=0, trailTargetX=0, turkeyClock=new THREE.Clock();
+let walkPhase=0;
 function resize3(){renderer.setSize(innerWidth,innerHeight,false);camera3.aspect=innerWidth/innerHeight;camera3.updateProjectionMatrix()}
 addEventListener("resize",resize3);resize3();
-function animate3(){requestAnimationFrame(animate3);const t=turkeyClock.getElapsedTime();turkey3.position.y=-1.05+Math.sin(t*7)*.035;turkey3.rotation.z=Math.sin(t*7)*.025;turkey3.position.x+=(turkeyTargetX-turkey3.position.x)*.06;renderer.render(scene,camera3)}animate3();
+function animate3(){
+ requestAnimationFrame(animate3);
+ const t=turkeyClock.getElapsedTime();
+ // Turkey stays visually several metres ahead and waddles along the route.
+ walkPhase=t*7;
+ turkey3.position.y=-1.05+Math.sin(walkPhase)*.035;
+ turkey3.rotation.z=Math.sin(walkPhase)*.025;
+ turkey3.position.z=-.15+Math.sin(t*1.35)*.10;
+ turkey3.position.x+=(turkeyTargetX-turkey3.position.x)*.055;
+ trail.position.x+=(trailTargetX-trail.position.x)*.055;
+ trailArrow.position.x+=(trailTargetX-trailArrow.position.x)*.055;
+ // Moving dots create the feeling that the trail flows forward as you walk.
+ trail.children.forEach((d,i)=>{
+   let z=3.35-(((i*.34+t*.72)%4.25));
+   d.position.z=z;
+ });
+ renderer.render(scene,camera3)
+}animate3();
 const places=[
  {name:"Student Central — Prentice (42)",lat:-27.49750,lng:153.01320},
  {name:"Building 41",lat:-27.49778,lng:153.01260},
@@ -135,9 +167,12 @@ function render(){
  else if(rel<-25&&rel>-150){symbol="←";words="Turn left toward the turkey"}
  else if(Math.abs(rel)>=150){symbol="↓";words="Turn around — wrong way!"}
  document.querySelector("#arrow").textContent=symbol;
- turkeyTargetX=rel>25?.85:rel<-25?-.85:0;
+ turkeyTargetX=rel>25?.72:rel<-25?-.72:0;
+ trailTargetX=turkeyTargetX*.45;
+ trail.rotation.y=THREE.MathUtils.degToRad(Math.max(-18,Math.min(18,-rel*.16)));
+ trailArrow.rotation.z=Math.PI+THREE.MathUtils.degToRad(Math.max(-28,Math.min(28,-rel*.22)));
  turkey3.rotation.y=Math.PI+(rel>25?-.42:rel<-25?.42:0);
- document.querySelector("#instruction").textContent=d<20?"Destination reached. Turkey mission accomplished.":words;
+ document.querySelector("#instruction").textContent=d<20?"Destination reached. Turkey mission accomplished.":(Math.abs(rel)<25?"Follow the dotted trail and keep the turkey ahead of you.":words);
  document.querySelector("#turkeySay").textContent=d<20?"Made it. Easy feed.":Math.abs(rel)>=150?"Oi! Other way.":"Righto. Follow me.";
 }
 function locate(){
