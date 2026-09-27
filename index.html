@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#51247A" />
+  <title>UQ Turkey Guide — Prototype</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    :root{--uq:#51247A;--ink:#1f1f25;--muted:#6d6a73;--card:rgba(255,255,255,.94)}
+    *{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:var(--ink);background:#f4f1f7}
+    header{height:64px;padding:0 18px;display:flex;align-items:center;justify-content:space-between;background:var(--uq);color:#fff}
+    header b{font-size:18px}.badge{font-size:11px;background:#fff;color:var(--uq);padding:5px 8px;border-radius:99px;font-weight:800}
+    main{max-width:760px;margin:auto;padding:16px}.hero{background:linear-gradient(135deg,#51247A,#7a42a3);color:white;border-radius:22px;padding:20px;box-shadow:0 12px 32px #51247a33}
+    .hero h1{font-size:28px;margin:0 0 6px}.hero p{margin:0;opacity:.9;line-height:1.4}
+    .search{margin-top:16px;background:#fff;border-radius:16px;padding:10px;display:flex;gap:8px}
+    select,button{font:inherit} select{flex:1;border:0;padding:10px;min-width:0;background:#fff} button{border:0;border-radius:12px;padding:12px 14px;font-weight:800;cursor:pointer}
+    .primary{background:#ffcc33;color:#2a2030}.secondary{background:#eee7f3;color:var(--uq)}
+    .status{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}.tile{background:white;border-radius:16px;padding:13px;box-shadow:0 4px 16px #0000000b}.tile small{color:var(--muted)}.tile strong{display:block;margin-top:4px}
+    #map{height:390px;border-radius:20px;overflow:hidden;box-shadow:0 8px 24px #0001}
+    .actions{display:flex;gap:10px;margin-top:12px}.actions button{flex:1}
+    #ar{display:none;position:fixed;inset:0;background:#111;z-index:50;color:#fff;overflow:hidden}
+    #cam{width:100%;height:100%;object-fit:cover}
+    .shade{position:absolute;inset:0;background:linear-gradient(#0008,transparent 30%,transparent 65%,#000a)}
+    .arTop{position:absolute;top:max(18px,env(safe-area-inset-top));left:16px;right:16px;display:flex;justify-content:space-between;align-items:center}
+    .arInfo{background:#0009;backdrop-filter:blur(10px);padding:10px 13px;border-radius:14px}.arInfo small{opacity:.8}.arInfo strong{display:block;font-size:17px}
+    .close{background:#fff;color:#222;width:44px;height:44px;border-radius:50%}
+    .turkeyWrap{position:absolute;left:50%;top:53%;transform:translate(-50%,-50%);text-align:center;filter:drop-shadow(0 10px 10px #0007)}
+    .turkey{font-size:104px;display:block;animation:waddle .55s infinite alternate ease-in-out}
+    @keyframes waddle{from{transform:rotate(-4deg) translateY(0)}to{transform:rotate(4deg) translateY(-6px)}}
+    .bubble{background:white;color:#222;border-radius:18px;padding:10px 14px;font-weight:800;max-width:260px;margin:auto}
+    .arrow{font-size:58px;font-weight:900;margin-top:4px}
+    .arBottom{position:absolute;bottom:max(22px,env(safe-area-inset-bottom));left:16px;right:16px;background:#51247ae8;backdrop-filter:blur(10px);border-radius:20px;padding:15px}
+    .arBottom strong{font-size:18px}.arBottom p{margin:5px 0 0;opacity:.85}
+    .note{font-size:12px;color:var(--muted);line-height:1.45;margin:12px 3px}
+    @media(min-width:700px){#map{height:480px}}
+  </style>
+</head>
+<body>
+<header><b>🦃 UQ Turkey Guide</b><span class="badge">ST LUCIA MVP</span></header>
+<main>
+  <section class="hero">
+    <h1>Where are we waddling?</h1>
+    <p>Choose a campus destination. Your bush turkey guide will point you in the right direction.</p>
+    <div class="search">
+      <select id="destination"></select>
+      <button class="primary" id="routeBtn">Guide me</button>
+    </div>
+  </section>
+  <section class="status">
+    <div class="tile"><small>Your location</small><strong id="locText">Not enabled</strong></div>
+    <div class="tile"><small>Destination</small><strong id="destText">Choose above</strong></div>
+  </section>
+  <div id="map"></div>
+  <div class="actions">
+    <button class="secondary" id="locateBtn">◎ Use my location</button>
+    <button class="primary" id="arBtn">🦃 Follow the Turkey</button>
+  </div>
+  <p class="note">Prototype: outdoor guidance only. Destination coordinates are an MVP dataset and should be replaced/validated against authoritative UQ mapping data before production use. Camera and geolocation require browser permission and generally HTTPS.</p>
+</main>
+<section id="ar">
+  <video id="cam" autoplay playsinline muted></video><div class="shade"></div>
+  <div class="arTop">
+    <div class="arInfo"><small>Heading to</small><strong id="arDest">Destination</strong></div>
+    <button class="close" id="closeAr">✕</button>
+  </div>
+  <div class="turkeyWrap"><div class="bubble" id="turkeySay">Righto. Follow me.</div><span class="turkey">🦃</span><div class="arrow" id="arrow">↑</div></div>
+  <div class="arBottom"><strong id="distance">Finding your position…</strong><p id="instruction">Point your phone forward and start walking.</p></div>
+</section>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const places=[
+ {name:"Student Central — Prentice (42)",lat:-27.49750,lng:153.01320},
+ {name:"Building 41",lat:-27.49778,lng:153.01260},
+ {name:"Great Court",lat:-27.49710,lng:153.01210},
+ {name:"UQ Centre (27A)",lat:-27.49590,lng:153.01425},
+ {name:"Advanced Engineering (49)",lat:-27.49905,lng:153.01315},
+ {name:"Biological Sciences Library (94)",lat:-27.49655,lng:153.01065},
+ {name:"UQ Lakes Bus Station",lat:-27.50045,lng:153.01520},
+ {name:"Chancellors Place",lat:-27.49495,lng:153.01305}
+];
+const sel=document.querySelector("#destination");
+places.forEach((p,i)=>sel.add(new Option(p.name,i)));
+const map=L.map("map").setView([-27.4974,153.0124],16);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:20,attribution:"© OpenStreetMap contributors"}).addTo(map);
+places.forEach((p,i)=>L.marker([p.lat,p.lng]).addTo(map).bindPopup(p.name));
+let me=null, meMarker=null, line=null, watchId=null, heading=0;
+function chosen(){return places[+sel.value]}
+function rad(x){return x*Math.PI/180}
+function deg(x){return x*180/Math.PI}
+function distance(a,b){const R=6371000,dLat=rad(b.lat-a.lat),dLon=rad(b.lng-a.lng);const q=Math.sin(dLat/2)**2+Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dLon/2)**2;return 2*R*Math.atan2(Math.sqrt(q),Math.sqrt(1-q));}
+function bearing(a,b){const y=Math.sin(rad(b.lng-a.lng))*Math.cos(rad(b.lat));const x=Math.cos(rad(a.lat))*Math.sin(rad(b.lat))-Math.sin(rad(a.lat))*Math.cos(rad(b.lat))*Math.cos(rad(b.lng-a.lng));return (deg(Math.atan2(y,x))+360)%360;}
+function render(){
+ const p=chosen(); document.querySelector("#destText").textContent=p.name; document.querySelector("#arDest").textContent=p.name;
+ if(!me)return;
+ if(meMarker)meMarker.setLatLng([me.lat,me.lng]); else meMarker=L.circleMarker([me.lat,me.lng],{radius:9}).addTo(map).bindPopup("You");
+ if(line)line.remove(); line=L.polyline([[me.lat,me.lng],[p.lat,p.lng]],{weight:6,opacity:.75}).addTo(map);
+ map.fitBounds(line.getBounds(),{padding:[45,45],maxZoom:18});
+ const d=distance(me,p), b=bearing(me,p), rel=((b-heading+540)%360)-180;
+ document.querySelector("#distance").textContent=d<20?"You’ve arrived!":Math.round(d)+" m away";
+ let symbol="↑", words="Keep straight";
+ if(rel>25&&rel<150){symbol="→";words="Turn right toward the turkey"}
+ else if(rel<-25&&rel>-150){symbol="←";words="Turn left toward the turkey"}
+ else if(Math.abs(rel)>=150){symbol="↓";words="Turn around — wrong way!"}
+ document.querySelector("#arrow").textContent=symbol;
+ document.querySelector("#instruction").textContent=d<20?"Destination reached. Turkey mission accomplished.":words;
+ document.querySelector("#turkeySay").textContent=d<20?"Made it. Easy feed.":Math.abs(rel)>=150?"Oi! Other way.":"Righto. Follow me.";
+}
+function locate(){
+ if(!navigator.geolocation){alert("Geolocation is not supported on this device.");return}
+ if(watchId!==null)return;
+ watchId=navigator.geolocation.watchPosition(pos=>{
+   me={lat:pos.coords.latitude,lng:pos.coords.longitude};
+   document.querySelector("#locText").textContent="±"+Math.round(pos.coords.accuracy)+" m";
+   render();
+ },err=>{document.querySelector("#locText").textContent="Location unavailable";alert(err.message)},
+ {enableHighAccuracy:true,maximumAge:1000,timeout:15000});
+}
+document.querySelector("#locateBtn").onclick=locate;
+document.querySelector("#routeBtn").onclick=()=>{locate();render()};
+sel.onchange=render;
+async function openAR(){
+ locate(); render();
+ document.querySelector("#ar").style.display="block";
+ try{
+   const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});
+   document.querySelector("#cam").srcObject=stream;
+ }catch(e){document.querySelector("#turkeySay").textContent="Camera blocked — compass mode still works."}
+ if(typeof DeviceOrientationEvent!=="undefined" && typeof DeviceOrientationEvent.requestPermission==="function"){
+   try{await DeviceOrientationEvent.requestPermission()}catch(e){}
+ }
+ window.addEventListener("deviceorientation",orient,true);
+}
+function orient(e){if(typeof e.webkitCompassHeading==="number") heading=e.webkitCompassHeading;else if(e.alpha!=null) heading=(360-e.alpha)%360;render();}
+function closeAR(){document.querySelector("#ar").style.display="none";const s=document.querySelector("#cam").srcObject;if(s)s.getTracks().forEach(t=>t.stop());window.removeEventListener("deviceorientation",orient,true);}
+document.querySelector("#arBtn").onclick=openAR;
+document.querySelector("#closeAr").onclick=closeAR;
+render();
+</script>
+</body></html>
