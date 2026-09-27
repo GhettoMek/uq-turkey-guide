@@ -1,0 +1,9 @@
+{
+  "name": "UQ Turkey Guide",
+  "short_name": "Turkey Guide",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f4f1f7",
+  "theme_color": "#51247A",
+  "description": "Experimental AR-style bush turkey campus guide for UQ St Lucia."
+}
