@@ -120,10 +120,16 @@ function animate3(){
  const t=turkeyClock.getElapsedTime();
  // Turkey stays visually several metres ahead and waddles along the route.
  walkPhase=t*7;
- turkey3.position.y=-.52+Math.sin(walkPhase)*.018;
- turkey3.rotation.z=Math.sin(walkPhase)*.025;
+ turkey3.position.y=-.52+Math.abs(Math.sin(walkPhase))*.028;
+ turkey3.rotation.z=Math.sin(walkPhase*.5)*.045;
+ turkey3.rotation.x=Math.sin(walkPhase)*.018;
  turkey3.position.z=-2.65+Math.sin(t*1.35)*.06;
  turkey3.position.x+=(turkeyTargetX-turkey3.position.x)*.055;
+ // Alternating leg swing gives the guide a visible forward-walking gait.
+ if(turkeyLegs.length===2){
+   turkeyLegs[0].rotation.x=Math.sin(walkPhase)*.52;
+   turkeyLegs[1].rotation.x=Math.sin(walkPhase+Math.PI)*.52;
+ }
  trail.position.x+=(trailTargetX-trail.position.x)*.055;
  trailArrow.position.x+=(trailTargetX-trailArrow.position.x)*.055;
  // Moving dots create the feeling that the trail flows forward as you walk.
